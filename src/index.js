@@ -28,7 +28,7 @@ const SET_STATE = 'SET_LOCAL_STATE'
 
 function localize (component) {
   if (typeof component === 'function') {
-    component = {render: compoonent}
+    component = {render: component}
   }
 
   return bindSetState({

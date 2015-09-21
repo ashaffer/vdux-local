@@ -91,4 +91,4 @@ function compose (a, b) {
  * Exports
  */
 
-export default local
+export default localize

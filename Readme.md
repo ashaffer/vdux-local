@@ -7,7 +7,7 @@ Bind a vdux component to local state using redux-ephemeral
 
 ## Installation
 
-    $ npm install @ashaffer/vdux-local
+    $ npm install vdux-local
 
 ## License
 

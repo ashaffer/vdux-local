@@ -47,7 +47,7 @@ function reducer (state, action) {
     case SET_STATE:
       return {
         ...state,
-        action.payload
+        ...action.payload
       }
   }
 

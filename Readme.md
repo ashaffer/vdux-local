@@ -54,7 +54,11 @@ const toggleDropdown = localAction(TOGGLE)
 // ...
 
 function render (props) {
-  return <button ev-click={e => toggleDropdown(props.key + '.dropdown')}>Open dropdown</button>
+  return (
+    <button ev-click={e => toggleDropdown(props.key + '.dropdown')}>
+      Open dropdown
+    </button>
+  )
 }
 ```
 

@@ -2,7 +2,7 @@
   "name": "vdux-local",
   "description": "Bind a vdux component to local state using redux-ephemeral",
   "repository": "git://github.com/ashaffer/vdux-local.git",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "main": "lib/index.js",
   "scripts": {

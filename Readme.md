@@ -27,6 +27,23 @@ export localize({
 })
 ```
 
+In your parent component, you must specify a key and pass down the state:
+
+```javascript
+import TextInput from './text-input'
+
+function render (props) {
+  return (
+    <div>
+      <TextInput key={props.key + '.input'} />
+    </div>
+  )
+}
+```
+
+
+Your key should be a sub-property of your parent's key, so that the container component will receive its child's state, so that it can pass it along.
+
 ## License
 
 The MIT License

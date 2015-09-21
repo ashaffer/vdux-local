@@ -9,6 +9,24 @@ Bind a vdux component to local state using redux-ephemeral
 
     $ npm install vdux-local
 
+## Usage
+
+Just compose it around your [virtual-component](https://github.com/ashaffer/virtual-component) definition.  E.g.
+
+```javascript
+import localize from 'vdux-local'
+
+function render (props, setState) {
+  return (
+    <input type='text' ev-change={e => setState({text: e.target.value})} />
+  )
+}
+
+export localize({
+  render
+})
+```
+
 ## License
 
 The MIT License

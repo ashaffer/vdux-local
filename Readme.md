@@ -41,6 +41,22 @@ function render (props) {
 }
 ```
 
+### Local actions
+
+vdux-local also exports a `localAction` function that creates local action creators that you may export from your component.  It has an API similar to `createAction` from [redux-actions](https://github.com/acdlite/redux-actions), but the resulting action creator takes one extra argument: `key`.  For example:
+
+```javascript
+import localAction from 'vdux-local'
+
+const TOGGLE = 'TOGGLE_DROPDOWN'
+const toggleDropdown = localAction(TOGGLE)
+
+// ...
+
+function render (props) {
+  return <button ev-click={e => toggleDropdown(props.key + '.dropdown')}>Open dropdown</button>
+}
+```
 
 Your key should be a sub-property of your parent's key, so that the container component will receive its child's state, so that it can pass it along.
 

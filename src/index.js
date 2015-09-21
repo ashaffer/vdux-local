@@ -5,6 +5,18 @@
 import {createEphemeral, updateEphemeral, destroyEphemeral} from 'redux-ephemeral'
 
 /**
+ * Vars
+ */
+
+const setStateReceivers = [
+  'beforeMount',
+  'beforeUpdate',
+  'render',
+  'afterUpdate',
+  'beforeUnmount'
+]
+
+/**
  * Types
  */
 
@@ -19,12 +31,40 @@ function localize (component) {
     component = {render: compoonent}
   }
 
-  return {
+  return bindSetState({
     ...component,
-    render: props => component.render(props, setState(props)),
-    beforeMount: compose(beforeMount(component.initialState), component.beforeMount),
-    beforeUnmount: compose(beforeUnmount, component.beforeUnmount)
-  }
+    beforeMount: composeActions(beforeMount(component.initialState, component.reducer), component.beforeMount),
+    beforeUnmount: composeActions(beforeUnmount, component.beforeUnmount)
+  })
+}
+
+/**
+ * Pass a curried setState to all the hooks and render
+ */
+
+function bindSetState (component) {
+  return setStateReceivers.reduce((acc, key) => {
+    const fn = acc[key]
+    if (!fn) return acc
+
+    acc[key] = (...args) => args.length === 1
+      ? fn(args[0], setState(args[0]))
+      : fn(...args, setState(args[1]))
+
+    return acc
+  }, component)
+}
+
+/**
+ * Local action-creator creator
+ */
+
+function localAction (type) {
+  return (key, payload, meta) => updateEphemeral(key, {
+    type,
+    payload,
+    meta
+  })
 }
 
 /**
@@ -58,13 +98,13 @@ function reducer (state, action) {
  * Hooks
  */
 
-function beforeMount (initialState = () => {}) {
+function beforeMount (initialState = () => {}, componentReducer = state => state) {
   return props => {
     if (!props.key) {
       throw new Error('You cannot create a local component without a props.key')
     }
 
-    return createEphemeral(props.key, reducer, initialState(props))
+    return createEphemeral(props.key, composeReducers(reducer, componentReducer), initialState(props))
   }
 }
 
@@ -77,10 +117,18 @@ function beforeUnmount (props) {
 }
 
 /**
+ * Compose two reducers together
+ */
+
+function composeReducers (a, b) {
+  return (state, action) => a(b(state, action), action)
+}
+
+/**
  * Action creator composition utility
  */
 
-function compose (a, b) {
+function composeActions (a, b) {
   return props =>
     b
       ? [].concat(b(props), a(props)).filter(Boolean)
@@ -92,3 +140,6 @@ function compose (a, b) {
  */
 
 export default localize
+export {
+  localAction
+}

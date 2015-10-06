@@ -3,24 +3,7 @@
  */
 
 import {createEphemeral, updateEphemeral, destroyEphemeral} from 'redux-ephemeral'
-
-/**
- * Vars
- */
-
-const setStateReceivers = [
-  'beforeMount',
-  'beforeUpdate',
-  'render',
-  'afterUpdate',
-  'beforeUnmount'
-]
-
-/**
- * Types
- */
-
-const SET_STATE = 'SET_LOCAL_STATE'
+import compose from 'compose-function'
 
 /**
  * Vdux local
@@ -31,28 +14,17 @@ function localize (component) {
     component = {render: component}
   }
 
-  return bindSetState({
+  const {beforeUpdate = noop, afterUpdate = noop} = component
+
+  return {
     ...component,
-    beforeMount: composeActions(beforeMount(component.initialState, component.reducer), component.beforeMount),
-    beforeUnmount: composeActions(beforeUnmount, component.beforeUnmount)
-  })
-}
-
-/**
- * Pass a curried setState to all the hooks and render
- */
-
-function bindSetState (component) {
-  return setStateReceivers.reduce((acc, key) => {
-    const fn = acc[key]
-    if (!fn) return acc
-
-    acc[key] = (...args) => args.length === 1
-      ? fn(args[0], setState(args[0]))
-      : fn(...args, setState(args[1]))
-
-    return acc
-  }, component)
+    transformProps: compose(transformProps(component.initialState), component.transformProps || identity),
+    beforeMount: composeActions(beforeMount(component.reducer), component.beforeMount),
+    beforeUnmount: composeActions(beforeUnmount, component.beforeUnmount),
+    render: props => component.render(props, childState(props.key, props.state)),
+    beforeUpdate: (prevProps, nextProps) => beforeUpdate(prevProps, nextProps, prevProps.state, nextProps.state),
+    afterUpdate: (prevProps, nextProps) => afterUpdate(prevProps, nextProps, prevProps.state, nextProps.state)
+  }
 }
 
 /**
@@ -68,60 +40,39 @@ function localAction (type) {
 }
 
 /**
- * setState action creator
+ * Child state helper
  */
 
-function setState (props) {
-  return newState => updateEphemeral(props.key, {
-    type: SET_STATE,
-    payload: newState
+function childState (key, parentState) {
+  return (...path) => ({
+    state: getPath(parentState, path),
+    key: key + '.' + path.join('.')
   })
-}
-
-/**
- * Reducer
- */
-
-function reducer (state, action) {
-  switch (action.type) {
-    case SET_STATE:
-      return {
-        ...state,
-        ...action.payload
-      }
-  }
-
-  return state
 }
 
 /**
  * Hooks
  */
 
-function beforeMount (initialState = () => {}, componentReducer = state => state) {
+function transformProps (initialState = () => ({})) {
   return props => {
+    props.state = props.state || initialState(props)
+    return props
+  }
+}
+
+function beforeMount (reducer = state => state) {
+  return (props) => {
     if (!props.key) {
       throw new Error('You cannot create a local component without a props.key')
     }
 
-    return createEphemeral(props.key, composeReducers(reducer, componentReducer), initialState(props))
+    return createEphemeral(props.key, reducer, props.state)
   }
 }
 
 function beforeUnmount (props) {
-  if (!props.key) {
-    throw new Error('You cannot create a local component without a props.key')
-  }
-
   return destroyEphemeral(props.key)
-}
-
-/**
- * Compose two reducers together
- */
-
-function composeReducers (a, b) {
-  return (state, action) => a(b(state, action), action)
 }
 
 /**
@@ -129,11 +80,28 @@ function composeReducers (a, b) {
  */
 
 function composeActions (a, b) {
-  return props =>
-    b
-      ? [].concat(b(props), a(props)).filter(Boolean)
-      : a(props)
+  return (...args) => b
+    ? [].concat(b(...args), a(...args)).filter(Boolean)
+    : a(...args)
 }
+
+/**
+ * Get a property path from an object
+ */
+
+function getPath (obj, path) {
+  let p = obj
+
+  for (let i = 0; p && i < path.length; i++) {
+    p = p[path[i]]
+  }
+
+  return p
+}
+
+function noop () {}
+function identity (a) { return a }
+
 
 /**
  * Exports

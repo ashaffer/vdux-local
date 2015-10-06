@@ -14,16 +14,31 @@ Bind a vdux component to local state using redux-ephemeral
 Just compose it around your [virtual-component](https://github.com/ashaffer/virtual-component) definition.  E.g.
 
 ```javascript
-import localize from 'vdux-local'
+import localize, {localAction} from 'vdux-local'
 
-function render (props, setState) {
+const updateText = localAction('UPDATE_TEXT')
+
+function render (props) {
   return (
-    <input type='text' ev-change={e => setState({text: e.target.value})} />
+    <input type='text' ev-change={e => updateText(e.currentTarget.value)} />
   )
 }
 
+function reducer (state, action) {
+  switch (action.type) {
+    case 'UPDATE_TEXT':
+      return {
+        ...state,
+        text: action.payload
+      }
+  }
+
+  return state
+}
+
 export localize({
-  render
+  render,
+  reducer
 })
 ```
 
@@ -32,30 +47,55 @@ In your parent component, you must specify a key and pass down the state:
 ```javascript
 import TextInput from './text-input'
 
-function render (props) {
+function render ({key, state}) {
   return (
     <div>
-      <TextInput key={props.key + '.input'} />
+      <TextInput key={key + '.input'} state={state.input} />
     </div>
   )
 }
 ```
+
+But this is kind of verbose, so there is a curried `childState` helper passed as the second argument to render that will generate a `key/state` tuple for you:
+
+```javascript
+function render (props, childState) {
+  return (
+    <div>
+      <TextInput {...childState('input')} />
+    </div>
+  )
+}
+```
+
+You can also pass multiple arguments for a dotted path:
+
+```javascript
+function render (props, childState) {
+  return (
+    <div>
+      {todos.map((todo, i) => <Todo {...childState('todos', i)})}
+    </div>
+  )
+}
+```
+
 
 ### Local actions
 
 vdux-local also exports a `localAction` function that creates local action creators that you may export from your component.  It has an API similar to `createAction` from [redux-actions](https://github.com/acdlite/redux-actions), but the resulting action creator takes one extra argument: `key`.  For example:
 
 ```javascript
-import localAction from 'vdux-local'
+import {localAction} from 'vdux-local'
 
 const TOGGLE = 'TOGGLE_DROPDOWN'
 const toggleDropdown = localAction(TOGGLE)
 
 // ...
 
-function render (props) {
+function render ({key}) {
   return (
-    <button ev-click={e => toggleDropdown(props.key + '.dropdown')}>
+    <button ev-click={e => toggleDropdown(key + '.dropdown')}>
       Open dropdown
     </button>
   )
